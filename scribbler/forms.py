@@ -6,7 +6,6 @@ import sys
 from django import forms
 from django.db.models import ObjectDoesNotExist, FieldDoesNotExist
 from django.template import StringOrigin
-from django.template.debug import DebugLexer, DebugParser
 from django.views.debug import ExceptionReporter
 from django.core.urlresolvers import reverse
 
