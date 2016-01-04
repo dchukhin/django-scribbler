@@ -6,27 +6,38 @@ import sys
 from django import forms
 from django.db.models import ObjectDoesNotExist, FieldDoesNotExist
 from django.template import StringOrigin
-from django.template.debug import DebugLexer, DebugParser
 from django.views.debug import ExceptionReporter
 from django.core.urlresolvers import reverse
 
 from .models import Scribble
+
 
 class ScribbleFormMixin(object):
 
     def clean_content(self):
         content = self.cleaned_data.get('content', '')
         if content:
-            origin = StringOrigin(content)
-            lexer = DebugLexer(content, origin)
+
+            # Pre-Django1.9
             try:
-                parser = DebugParser(lexer.tokenize())
-                parser.parse()
-            except Exception as e:
-                self.exc_info = sys.exc_info()
-                if not hasattr(self.exc_info[1], 'django_template_source'):
-                    self.exc_info[1].django_template_source = origin, (0, 0)
-                raise forms.ValidationError('Invalid Django Template')
+                from django.template.debug import DebugLexer, DebugParser
+            # Django1.9
+            except ImportError:
+                from django.template import Template
+                template = Template(template_string=content)
+                template.compile_nodelist()
+            # Pre-Django1.9
+            else:
+                origin = StringOrigin(content)
+                lexer = DebugLexer(content, origin)
+                try:
+                    parser = DebugParser(lexer.tokenize())
+                    parser.parse()
+                except Exception as e:
+                    self.exc_info = sys.exc_info()
+                    if not hasattr(self.exc_info[1], 'django_template_source'):
+                        self.exc_info[1].django_template_source = origin, (0, 0)
+                    raise forms.ValidationError('Invalid Django Template')
         return content
 
 
