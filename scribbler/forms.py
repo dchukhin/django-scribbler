@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import sys
 
 from django import forms
+from django import VERSION
 from django.db.models import ObjectDoesNotExist, FieldDoesNotExist
 from django.template import StringOrigin
 from django.views.debug import ExceptionReporter
@@ -11,28 +12,28 @@ from django.core.urlresolvers import reverse
 
 from .models import Scribble
 
+
 class ScribbleFormMixin(object):
 
     def clean_content(self):
         content = self.cleaned_data.get('content', '')
         if content:
-
-            # Pre-Django1.9
-            try:
-                from django.template.debug import DebugLexer, DebugParser
-            # Django1.9
-            except ImportError:
+            # Imports based on pre or post Django1.9
+            if float('{}.{}'.format(VERSION[0], VERSION[1])) >= 1.9:
                 from django.template import Template
-                template = Template(template_string=content)
-                template.compile_nodelist()
-            # Pre-Django1.9
             else:
-                origin = StringOrigin(content)
-                lexer = DebugLexer(content, origin)
-                try:
+                from django.template.debug import DebugLexer, DebugParser
+
+            try:
+                if float('{}.{}'.format(VERSION[0], VERSION[1])) >= 1.9:
+                    template = Template(template_string=content)
+                    template.compile_nodelist()
+                else:
+                    origin = StringOrigin(content)
+                    lexer = DebugLexer(content, origin)
                     parser = DebugParser(lexer.tokenize())
                     parser.parse()
-                except Exception as e:
+            except Exception as e:
                     self.exc_info = sys.exc_info()
                     if not hasattr(self.exc_info[1], 'django_template_source'):
                         self.exc_info[1].django_template_source = origin, (0, 0)
